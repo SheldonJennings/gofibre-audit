@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Fibre — Commissioning Audit</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Nunito+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:"Nunito Sans",sans-serif;background:#F4FBF8;color:#1E2530;min-height:100vh;}
+header{background:#fff;border-bottom:3px solid #7DFFD1;position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(30,37,48,0.1);}
+.hdr{max-width:980px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;}
+.hdr img{height:40px;width:auto;}
+.badge{background:#1E2530;color:#7DFFD1;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:0.08em;font-family:"Nunito",sans-serif;}
+.saved{font-size:11px;color:#3D9E7A;font-weight:700;opacity:0;transition:opacity 0.3s;}
+.saved.on{opacity:1;}
+.wrap{max-width:980px;margin:0 auto;padding:20px 16px 60px;}
+.card{background:#fff;border-radius:14px;padding:20px;margin-bottom:14px;box-shadow:0 2px 16px rgba(30,37,48,0.08);border:1px solid rgba(125,255,209,0.15);}
+.card-hdr{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #F4FBF8;}
+.card-icon{width:32px;height:32px;background:#1E2530;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.card-title{font-family:"Nunito",sans-serif;font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:0.06em;color:#1E2530;}
+label{font-size:12px;font-weight:700;color:#5A6A7E;display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:0.04em;}
+input,select,textarea{padding:10px 12px;border:1.5px solid #C8EFE3;border-radius:8px;font-size:14px;font-family:"Nunito Sans",sans-serif;background:#F4FBF8;color:#1E2530;width:100%;transition:border-color 0.2s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#5DCBA0;box-shadow:0 0 0 3px rgba(125,255,209,0.2);background:white;}
+textarea{min-height:60px;resize:vertical;}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:12px;}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:12px;}
+.pills{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+.pill{flex:1;min-width:90px;border-radius:10px;padding:12px 16px;border:1.5px solid;}
+.pill.pass-s{border-color:#27ae60;background:#f0fff4;}
+.pill.pass-s .pn{color:#27ae60;}
+.pill.coaching{border-color:#f39c12;background:#fffbea;}
+.pill.coaching .pn{color:#f39c12;}
+.pill.critical{border-color:#e74c3c;background:#fff5f5;}
+.pill.critical .pn{color:#e74c3c;}
+.pn{font-family:"Nunito",sans-serif;font-weight:900;font-size:28px;}
+.pl{font-size:12px;color:#5A6A7E;}
+.verdict{padding:10px 14px;border-radius:8px;font-size:13px;background:#F4FBF8;color:#5A6A7E;font-style:italic;}
+.verdict.passed{background:#f0fff4;color:#27ae60;font-style:normal;font-weight:600;}
+.verdict.coaching{background:#fffbea;color:#f39c12;font-style:normal;font-weight:600;}
+.verdict.critical{background:#fff5f5;color:#e74c3c;font-style:normal;font-weight:600;}
+.add-wp{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-bottom:14px;}
+.add-wp button{padding:10px 18px;background:#1E2530;color:#7DFFD1;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:"Nunito",sans-serif;white-space:nowrap;}
+.add-wp button:hover{background:#2A3345;}
+.wp-list{display:flex;flex-direction:column;gap:8px;}
+.wp-item{border:1.5px solid #C8EFE3;border-radius:10px;overflow:hidden;}
+.wp-item.passed{border-color:#27ae60;}
+.wp-item.coaching{border-color:#f39c12;}
+.wp-item.critical{border-color:#e74c3c;}
+.wp-item.partial{border-color:#5DCBA0;}
+.wp-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;background:#F4FBF8;}
+.wp-hdr:hover{background:#e0f5ec;}
+.wp-ref{font-size:14px;font-weight:700;color:#1E2530;font-family:"Nunito",sans-serif;}
+.wp-type{font-size:10px;padding:2px 8px;border-radius:10px;background:#1E2530;color:#7DFFD1;font-weight:700;}
+.wp-stat{margin-left:auto;font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700;}
+.wp-stat.passed{background:#f0fff4;color:#27ae60;}
+.wp-stat.coaching{background:#fffbea;color:#f39c12;}
+.wp-stat.critical{background:#fff5f5;color:#e74c3c;}
+.wp-stat.partial{background:#e8f5e9;color:#3D9E7A;}
+.wp-stat.pending{background:#F4FBF8;color:#5A6A7E;}
+.wp-del{background:none;border:none;color:#ccc;font-size:18px;cursor:pointer;padding:0 4px;flex-shrink:0;line-height:1;}
+.wp-del:hover{color:#e74c3c;}
+.wp-body{display:none;padding:14px;border-top:1.5px solid #C8EFE3;}
+.wp-body.on{display:block;}
+.ck-item{border:1.5px solid #C8EFE3;border-radius:8px;margin-bottom:6px;overflow:hidden;background:#fff;}
+.ck-item.passed{border-color:#27ae60;background:#f0fff4;}
+.ck-item.coaching{border-color:#f39c12;background:#fffbea;}
+.ck-item.critical{border-color:#e74c3c;background:#fff5f5;}
+.ck-item.na{border-color:#888;background:#f5f5f5;}
+.ck-top{display:flex;align-items:center;gap:8px;padding:10px 12px;flex-wrap:wrap;}
+.ck-name{flex:1;font-size:13px;color:#1E2530;cursor:pointer;min-width:120px;line-height:1.4;}
+.ck-vbtns{display:flex;gap:5px;flex-shrink:0;}
+.ck-vb{padding:5px 10px;border:1.5px solid;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;font-family:"Nunito Sans",sans-serif;}
+.ck-vb.passed{border-color:#27ae60;color:#27ae60;}
+.ck-vb.passed.on{background:#27ae60;color:white;}
+.ck-vb.coaching{border-color:#f39c12;color:#f39c12;}
+.ck-vb.coaching.on{background:#f39c12;color:white;}
+.ck-vb.critical{border-color:#e74c3c;color:#e74c3c;}
+.ck-vb.critical.on{background:#e74c3c;color:white;}
+.ck-vb.na{border-color:#888;color:#888;}
+.ck-vb.na.on{background:#888;color:white;}
+.ck-body{display:none;padding:0 12px 12px;}
+.ck-body.on{display:block;}
+.ck-body textarea{margin:8px 0;}
+.ck-photos{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.ck-thumb{width:70px;height:70px;border-radius:8px;overflow:hidden;border:1.5px solid #C8EFE3;position:relative;cursor:pointer;flex-shrink:0;}
+.ck-thumb img{width:100%;height:100%;object-fit:cover;}
+.ck-rm{position:absolute;top:2px;right:2px;background:rgba(0,0,0,0.65);color:white;border:none;border-radius:50%;width:16px;height:16px;font-size:10px;cursor:pointer;line-height:16px;text-align:center;padding:0;}
+.ck-add-photo{width:70px;height:70px;border-radius:8px;border:1.5px dashed #C8EFE3;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;font-size:11px;font-weight:700;color:#5A6A7E;gap:2px;flex-shrink:0;}
+.ck-add-photo:hover{border-color:#5DCBA0;color:#3D9E7A;}
+.ck-del{background:none;border:none;color:#bbb;font-size:18px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0;}
+.ck-del:hover{color:#e74c3c;}
+.ck-add-row{display:flex;gap:8px;align-items:flex-end;margin-top:12px;padding-top:10px;border-top:1px dashed #C8EFE3;}
+.ck-add-row input{flex:1;}
+.btn{padding:10px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:"Nunito",sans-serif;}
+.btn-dark{background:#1E2530;color:#7DFFD1;}
+.btn-dark:hover{background:#2A3345;}
+.btn-green{background:#7DFFD1;color:#1E2530;}
+.btn-green:hover{background:#5DCBA0;}
+.btn-light{background:#F4FBF8;color:#1E2530;border:1.5px solid #C8EFE3;}
+.btn-light:hover{border-color:#5DCBA0;}
+.btn-danger{background:none;color:#e74c3c;border:1.5px solid #fcc;font-size:12px;padding:8px 14px;}
+.btn-sm{padding:7px 12px;font-size:12px;}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;}
+.empty{text-align:center;padding:24px;color:#5A6A7E;font-size:13px;border:1.5px dashed #C8EFE3;border-radius:8px;}
+.notice{background:rgba(125,255,209,0.15);border:1px solid rgba(125,255,209,0.4);border-radius:8px;padding:10px 14px;font-size:12px;color:#1E2530;margin-bottom:14px;}
+.lb{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:999;align-items:center;justify-content:center;padding:20px;}
+.lb.on{display:flex;}
+.lb img{max-width:100%;max-height:90vh;border-radius:10px;}
+.lb-x{position:absolute;top:14px;right:18px;color:white;font-size:32px;cursor:pointer;font-weight:700;}
+@media(max-width:640px){
+  .g3{grid-template-columns:1fr 1fr;}
+  .g2{grid-template-columns:1fr;}
+  .add-wp{grid-template-columns:1fr 1fr;}
+  .add-wp button{grid-column:1/-1;}
+  .ck-vbtns{gap:3px;}
+  .ck-vb{padding:4px 7px;font-size:10px;}
+  .btn-row{flex-direction:column;}
+  .btn-row .btn{width:100%;text-align:center;}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <img src="data:image/jpeg;base64,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" alt="Go Fibre"/>
+    <div class="badge">Commissioning Audit</div>
+    <span class="saved" id="savedMsg">Saved</span>
+  </div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon">&#128203;</div><div class="card-title">Audit Details</div></div>
+    <div class="g3">
+      <div><label>ZN ID</label><input type="text" id="znId" placeholder="e.g. ZN7165"/></div>
+      <div><label>Build Area</label><input type="text" id="buildArea" placeholder="e.g. Newburgh"/></div>
+      <div><label>Audit Date</label><input type="date" id="auditDate"/></div>
+    </div>
+    <div class="g2">
+      <div><label>Auditor Name</label><input type="text" id="auditorName" placeholder="e.g. Sheldon"/></div>
+      <div><label>Contractor</label><input type="text" id="contractorName" placeholder="e.g. L3 Optics"/></div>
+    </div>
+    <div><label>General Notes</label><textarea id="generalNotes" placeholder="Any overall observations about this audit..."></textarea></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon">&#128202;</div><div class="card-title">Audit Summary</div></div>
+    <div class="pills">
+      <div class="pill pass-s"><div class="pn" id="nPass">0</div><div class="pl">Pass</div></div>
+      <div class="pill coaching"><div class="pn" id="nCoach">0</div><div class="pl">Coaching</div></div>
+      <div class="pill critical"><div class="pn" id="nCrit">0</div><div class="pl">Critical</div></div>
+    </div>
+    <div class="verdict" id="verdict">Add workpoints and complete the checklist to see the overall verdict.</div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon">&#128205;</div><div class="card-title">Workpoints</div></div>
+    <div class="notice">&#128221; Add each workpoint by reference and select the asset type. The relevant checklist loads automatically.</div>
+    <div class="add-wp">
+      <div><label>WP Reference</label><input type="text" id="wpRef" placeholder="e.g. WP1, WP1.2, WP2" onkeydown="if(event.key==='Enter')addWP()"/></div>
+      <div><label>Asset Type</label>
+        <select id="wpType">
+          <option value="oh">Overhead (OH) — Pole</option>
+          <option value="ug">Underground (UG) — Chamber/Duct</option>
+          <option value="iqgeo">IQGeo / Sign-Off Checks</option>
+          <option value="general">General / Site</option>
+        </select>
+      </div>
+      <div><label>&nbsp;</label><button onclick="addWP()">+ Add WP</button></div>
+    </div>
+    <div class="wp-list" id="wpList"><div class="empty">No workpoints added yet — enter a WP reference above and click Add WP.</div></div>
+  </div>
+  <div class="card">
+    <div class="card-hdr"><div class="card-icon">&#128228;</div><div class="card-title">Export</div></div>
+    <div class="btn-row">
+      <button class="btn btn-green" onclick="exportPDF()">&#8659; Export PDF Report</button>
+      <button class="btn btn-dark" onclick="saveFile()">&#128190; Save Audit File</button>
+      <label class="btn btn-light" style="cursor:pointer;">&#128194; Load Saved Audit<input type="file" accept=".json" onchange="loadFile(event)" style="display:none"/></label>
+      <button class="btn btn-danger" onclick="resetAll()">Reset All</button>
+    </div>
+    <p style="font-size:11px;color:#5A6A7E;margin-top:10px;">Export PDF opens in a new tab — use Ctrl+P to save as PDF.</p>
+  </div>
+</div>
+<div class="lb" id="lb" onclick="closeLb()">
+  <span class="lb-x">x</span>
+  <img id="lbImg" src=""/>
+</div>
+<script>
+
+var CHECKS = {oh:["Fibre locking mechanism (ELM) fitted correctly", "OH cables routed and dressed away from pole climbing step positions \u2014 minimum cable bend radius maintained", "OH cable fixed to pole using Strip Aluminium with nails, bonding and washers at 450mm intervals", "C clips using 1 nail, bonding and washer \u2014 no pinching or crushing of cables or BFT", "OH MMJs fitted correctly in lower envelope as per CP08", "GF OH cable heights installed as per CP08 (5.9m carriageway, 3.7m footway)", "OH pole capping and elephants foot installed correctly using 1 nail, bonding and washer", "Pre-climb check label correct and traceable to engineer/job", "OH joints, cables and splitters clearly marked with ID using permanent marker (Gold/White)", "OH cable labelled above capping between 1.5m and 2m from base of pole", "OH DN correctly fixed in top pole envelope with backing plate and correct screws", "All GoFibre poles installed to minimum depth of 1.2m", "All new poles erected as per GF polling pack", "New pole furniture installed correctly", "GF pole labelled as per IQGeo", "New poles not bleeding", "OR defects on site reported via A1024", "All cable ties cut flush with no sharp ends"],ug:["Joints, cables, splitters and splicing built as per job pack instruction unless authorised by DM/BAE", "UG joints, cables and splitters clearly and correctly marked with ID using permanent marker (Gold/White)", "Fibre cables and nodes correctly supported and restrained \u2014 minimum bending radius maintained", "Correct glands used and installed correctly", "All gel wraps installed to standard and recorded on IQGeo", "DILOR issues considered and identified", "Correct duct size/colour used", "All new chambers built to specification as per CP13 guidance", "All reinstatements completed as per SROH (Scotland)", "UG duct no more than 20m from curtilage of premise", "All cable ties cut flush with no sharp ends"],iqgeo:["All nodes passed testing on EXFO Exchange", "All ILCs closed and reflected on IQGeo", "All build complete photos obtained", "All cable and node statuses updated on IQGeo (Installed Validated)", "ZN status updated on IQGeo (Build Audit Completed)", "All work point addresses correct and recorded on IQGeo", "Cable routes reflected correctly on IQGeo", "SNN checked correct and reflects any L2C potential issues for homes served"],general:["Worksite left tidy and all rubbish removed", "All civils works completed as per GF civils pack", "150m max distance from furthest target premise customer entry point unless compliant isolated premise", "All cable ties cut flush with no sharp ends"]};
+var TYPE_LABELS = {oh:"Overhead (OH)",ug:"Underground (UG)",iqgeo:"IQGeo / Sign-Off",general:"General / Site"};
+var SK = "gf_audit_wp4";
+var wps = [];
+var nextId = 1;
+
+function addWP() {
+  var ref = document.getElementById("wpRef").value.trim();
+  var type = document.getElementById("wpType").value;
+  if (!ref) {
+    var el = document.getElementById("wpRef");
+    el.style.borderColor = "#e74c3c";
+    setTimeout(function(){ el.style.borderColor = ""; }, 1500);
+    return;
+  }
+  var checks = (CHECKS[type] || []).map(function(n) {
+    return { name: n, v: null, notes: "", photos: [] };
+  });
+  wps.push({ id: nextId++, ref: ref, type: type, checks: checks, open: true });
+  document.getElementById("wpRef").value = "";
+  renderWPs();
+  trySave();
+}
+
+function removeWP(id) {
+  if (!confirm("Remove this workpoint?")) return;
+  wps = wps.filter(function(w) { return w.id !== id; });
+  renderWPs();
+  updateSummary();
+  trySave();
+}
+
+function toggleWP(id) {
+  var wp = wps.find(function(w) { return w.id === id; });
+  if (!wp) return;
+  wp.open = !wp.open;
+  var b = document.getElementById("wpb-" + id);
+  if (b) b.className = "wp-body" + (wp.open ? " on" : "");
+}
+
+function addCustomCheck(wpId) {
+  var inp = document.getElementById("ci-" + wpId);
+  var name = inp.value.trim();
+  if (!name) return;
+  var wp = wps.find(function(w) { return w.id === wpId; });
+  if (!wp) return;
+  wp.checks.push({ name: name, v: null, notes: "", photos: [] });
+  inp.value = "";
+  renderWPs();
+  trySave();
+}
+
+function makeVBtn(wpId, idx, verdict, label) {
+  var wp = wps.find(function(w) { return w.id === wpId; });
+  var curV = wp && wp.checks[idx] ? wp.checks[idx].v : null;
+  var btn = document.createElement("button");
+  btn.className = "ck-vb " + verdict + (curV === verdict ? " on" : "");
+  btn.textContent = label;
+  btn.onclick = function() { setV(wpId, idx, verdict); };
+  return btn;
+}
+
+function setV(wpId, idx, verdict) {
+  var wp = wps.find(function(w) { return w.id === wpId; });
+  if (!wp || !wp.checks[idx]) return;
+  wp.checks[idx].v = verdict;
+  var w = document.getElementById("ck-" + wpId + "-" + idx);
+  if (w) w.className = "ck-item " + verdict;
+  var btns = w ? w.querySelectorAll(".ck-vb") : [];
+  for (var i = 0; i < btns.length; i++) {
+    var b = btns[i];
+    var bv = b.getAttribute("data-v");
+    b.className = "ck-vb " + bv + (verdict === bv ? " on" : "");
+  }
+  var body = document.getElementById("cb-" + wpId + "-" + idx);
+  if (body) {
+    body.className = "ck-body on";
+    renderPhotos(wpId, idx);
+  }
+  updateWPStatus(wpId);
+  updateSummary();
+  trySave();
+}
+
+function togCkBody(wpId, idx) {
+  var body = document.getElementById("cb-" + wpId + "-" + idx);
+  if (!body) return;
+  var open = body.className.indexOf("on") !== -1;
+  body.className = "ck-body" + (open ? "" : " on");
+  if (!open) renderPhotos(wpId, idx);
+}
+
+function renderPhotos(wpId, idx) {
+  var c = document.getElementById("cph-" + wpId + "-" + idx);
+  if (!c) return;
+  var wp = wps.find(function(w) { return w.id === wpId; });
+  if (!wp || !wp.checks[idx]) return;
+  var photos = wp.checks[idx].photos || [];
+  c.innerHTML = "";
+  photos.forEach(function(src, pi) {
+    var th = document.createElement("div");
+    th.className = "ck-thumb";
+    var img = document.createElement("img");
+    img.src = src;
+    (function(s) { img.onclick = function() { openLb(s); }; })(src);
+    var rm = document.createElement("button");
+    rm.className = "ck-rm";
+    rm.textContent = "x";
+    (function(wid, ii, pp) {
+      rm.onclick = function(e) {
+        e.stopPropagation();
+        var w2 = wps.find(function(w) { return w.id === wid; });
+        if (w2 && w2.checks[ii]) {
+          w2.checks[ii].photos.splice(pp, 1);
+          renderPhotos(wid, ii);
+          trySave();
+        }
+      };
+    })(wpId, idx, pi);
+    th.appendChild(img);
+    th.appendChild(rm);
+    c.appendChild(th);
+  });
+  // Camera button
+  var camBtn = document.createElement("div");
+  camBtn.className = "ck-add-photo";
+  camBtn.innerHTML = '<span style="font-size:20px;line-height:1">&#128247;</span><span>Camera</span>';
+  (function(wid, ii) {
+    camBtn.onclick = function() {
+      var inp = document.getElementById("cpi-cam-" + wid + "-" + ii);
+      if (inp) inp.click();
+    };
+  })(wpId, idx);
+  c.appendChild(camBtn);
+
+  // Gallery button
+  var galBtn = document.createElement("div");
+  galBtn.className = "ck-add-photo";
+  galBtn.innerHTML = '<span style="font-size:20px;line-height:1">&#128444;</span><span>Gallery</span>';
+  (function(wid, ii) {
+    galBtn.onclick = function() {
+      var inp = document.getElementById("cpi-gal-" + wid + "-" + ii);
+      if (inp) inp.click();
+    };
+  })(wpId, idx);
+  c.appendChild(galBtn);
+
+  // Camera input (capture)
+  var camInp = document.createElement("input");
+  camInp.type = "file"; camInp.accept = "image/*"; camInp.capture = "environment";
+  camInp.style.display = "none"; camInp.id = "cpi-cam-" + wpId + "-" + idx;
+  (function(wid, ii) {
+    camInp.onchange = function(e) {
+      var files = Array.from(e.target.files); var left = files.length;
+      files.forEach(function(f) {
+        var r = new FileReader();
+        r.onload = function(ev) {
+          var w2 = wps.find(function(w) { return w.id === wid; });
+          if (w2 && w2.checks[ii]) { w2.checks[ii].photos.push(ev.target.result); left--; if (!left) { renderPhotos(wid, ii); trySave(); } }
+        };
+        r.readAsDataURL(f);
+      });
+      e.target.value = "";
+    };
+  })(wpId, idx);
+  c.appendChild(camInp);
+
+  // Gallery input (no capture - opens gallery)
+  var inp = document.createElement("input");
+  inp.type = "file"; inp.accept = "image/*"; inp.multiple = true;
+  inp.style.display = "none"; inp.id = "cpi-gal-" + wpId + "-" + idx;
+  (function(wid, ii) {
+    inp.onchange = function(e) {
+      var files = Array.from(e.target.files);
+      var left = files.length;
+      files.forEach(function(f) {
+        var r = new FileReader();
+        r.onload = function(ev) {
+          var w2 = wps.find(function(w) { return w.id === wid; });
+          if (w2 && w2.checks[ii]) {
+            w2.checks[ii].photos.push(ev.target.result);
+            left--;
+            if (!left) { renderPhotos(wid, ii); trySave(); }
+          }
+        };
+        r.readAsDataURL(f);
+      });
+      e.target.value = "";
+    };
+  })(wpId, idx);
+  c.appendChild(inp);
+}
+
+function getWPStatus(wp) {
+  var p = 0, c = 0, cr = 0, na = 0;
+  wp.checks.forEach(function(ck) {
+    if (ck.v === "passed") p++;
+    else if (ck.v === "coaching") c++;
+    else if (ck.v === "critical") cr++;
+    else if (ck.v === "na") na++;
+  });
+  var done = p + c + cr + na;
+  if (!done) return "pending";
+  if (cr > 0) return "critical";
+  if (c > 0) return "coaching";
+  if (done === wp.checks.length) return "passed";
+  return "partial";
+}
+
+function getWPStatusLabel(wp) {
+  var status = getWPStatus(wp);
+  var done = wp.checks.filter(function(c) { return c.v; }).length;
+  if (status === "pending") return "0/" + wp.checks.length + " checked";
+  if (status === "partial") return done + "/" + wp.checks.length + " checked";
+  if (status === "passed") return "All passed";
+  if (status === "coaching") return "Coaching";
+  if (status === "critical") return "Critical";
+  return "";
+}
+
+function updateWPStatus(wpId) {
+  var wp = wps.find(function(w) { return w.id === wpId; });
+  if (!wp) return;
+  var item = document.getElementById("wpi-" + wpId);
+  if (!item) return;
+  var status = getWPStatus(wp);
+  item.className = "wp-item " + status;
+  var stat = item.querySelector(".wp-stat");
+  if (stat) { stat.className = "wp-stat " + status; stat.textContent = getWPStatusLabel(wp); }
+}
+
+function deleteCheck(wpId, idx) {
+  var wp = wps.find(function(w) { return w.id === wpId; });
+  if (!wp) return;
+  if (!confirm("Delete this check item?")) return;
+  wp.checks.splice(idx, 1);
+  renderWPs();
+  updateSummary();
+  trySave();
+}
+
+function makeCheckItem(wp, idx) {
+  var ck = wp.checks[idx];
+  var ci = document.createElement("div");
+  ci.className = "ck-item" + (ck.v ? " " + ck.v : "");
+  ci.id = "ck-" + wp.id + "-" + idx;
+
+  var top = document.createElement("div");
+  top.className = "ck-top";
+
+  var nameEl = document.createElement("div");
+  nameEl.className = "ck-name";
+  nameEl.textContent = ck.name;
+  (function(wid, ii) { nameEl.onclick = function() { togCkBody(wid, ii); }; })(wp.id, idx);
+
+  var btns = document.createElement("div");
+  btns.className = "ck-vbtns";
+
+  var verdicts = [["passed","Pass"],["coaching","Coaching"],["critical","Critical"],["na","N/A"]];
+  verdicts.forEach(function(vp) {
+    var vv = vp[0], vl = vp[1];
+    var btn = document.createElement("button");
+    btn.className = "ck-vb " + vv + (ck.v === vv ? " on" : "");
+    btn.textContent = vl;
+    btn.setAttribute("data-v", vv);
+    (function(wid, ii, verdict) {
+      btn.onclick = function() { setV(wid, ii, verdict); };
+    })(wp.id, idx, vv);
+    btns.appendChild(btn);
+  });
+
+  // Delete button
+  var delBtn = document.createElement("button");
+  delBtn.className = "ck-del";
+  delBtn.innerHTML = "&#215;";
+  delBtn.title = "Delete this check item";
+  (function(wid, ii) {
+    delBtn.onclick = function(e) {
+      e.stopPropagation();
+      deleteCheck(wid, ii);
+    };
+  })(wp.id, idx);
+
+  top.appendChild(nameEl);
+  top.appendChild(btns);
+  top.appendChild(delBtn);
+
+  var body = document.createElement("div");
+  body.className = "ck-body on";
+  body.id = "cb-" + wp.id + "-" + idx;
+
+  var ta = document.createElement("textarea");
+  ta.placeholder = "Notes / observations...";
+  ta.value = ck.notes || "";
+  (function(wid, ii, t) {
+    t.oninput = function() {
+      var w2 = wps.find(function(w) { return w.id === wid; });
+      if (w2 && w2.checks[ii]) w2.checks[ii].notes = t.value;
+      trySave();
+    };
+  })(wp.id, idx, ta);
+  body.appendChild(ta);
+
+  var ph = document.createElement("div");
+  ph.className = "ck-photos";
+  ph.id = "cph-" + wp.id + "-" + idx;
+  body.appendChild(ph);
+
+  ci.appendChild(top);
+  ci.appendChild(body);
+  renderPhotos(wp.id, idx);
+  return ci;
+}
+
+function renderWPs() {
+  var list = document.getElementById("wpList");
+  if (!wps.length) {
+    list.innerHTML = '<div class="empty">No workpoints added yet — enter a WP reference above and click Add WP.</div>';
+    return;
+  }
+  list.innerHTML = "";
+  wps.forEach(function(wp) {
+    var status = getWPStatus(wp);
+    var item = document.createElement("div");
+    item.className = "wp-item " + status;
+    item.id = "wpi-" + wp.id;
+
+    var hdr = document.createElement("div");
+    hdr.className = "wp-hdr";
+    (function(id) { hdr.onclick = function() { toggleWP(id); }; })(wp.id);
+
+    var ref = document.createElement("span");
+    ref.className = "wp-ref";
+    ref.textContent = wp.ref;
+
+    var type = document.createElement("span");
+    type.className = "wp-type";
+    type.textContent = TYPE_LABELS[wp.type] || wp.type;
+
+    var stat = document.createElement("span");
+    stat.className = "wp-stat " + status;
+    stat.textContent = getWPStatusLabel(wp);
+
+    var del = document.createElement("button");
+    del.className = "wp-del";
+    del.innerHTML = "&#215;";
+    (function(id) {
+      del.onclick = function(e) { e.stopPropagation(); removeWP(id); };
+    })(wp.id);
+
+    hdr.appendChild(ref);
+    hdr.appendChild(type);
+    hdr.appendChild(stat);
+    hdr.appendChild(del);
+    item.appendChild(hdr);
+
+    var body = document.createElement("div");
+    body.className = "wp-body" + (wp.open ? " on" : "");
+    body.id = "wpb-" + wp.id;
+
+    wp.checks.forEach(function(ck, idx) {
+      body.appendChild(makeCheckItem(wp, idx));
+    });
+
+    var ar = document.createElement("div");
+    ar.className = "ck-add-row";
+    var ainp = document.createElement("input");
+    ainp.type = "text";
+    ainp.id = "ci-" + wp.id;
+    ainp.placeholder = "Add custom check item...";
+    var abtn = document.createElement("button");
+    abtn.className = "btn btn-dark btn-sm";
+    abtn.textContent = "+ Add";
+    (function(wid) { abtn.onclick = function() { addCustomCheck(wid); }; })(wp.id);
+    ar.appendChild(ainp);
+    ar.appendChild(abtn);
+    body.appendChild(ar);
+    item.appendChild(body);
+    list.appendChild(item);
+  });
+}
+
+function updateSummary() {
+  var p = 0, c = 0, cr = 0;
+  wps.forEach(function(wp) {
+    wp.checks.forEach(function(ck) {
+      if (ck.v === "passed" || ck.v === "na") p++;
+      else if (ck.v === "coaching") c++;
+      else if (ck.v === "critical") cr++;
+    });
+  });
+  document.getElementById("nPass").textContent = p;
+  document.getElementById("nCoach").textContent = c;
+  document.getElementById("nCrit").textContent = cr;
+  var vEl = document.getElementById("verdict");
+  var total = p + c + cr;
+  if (!total) { vEl.className = "verdict"; vEl.textContent = "Add workpoints and complete the checklist to see the overall verdict."; }
+  else if (cr > 0) { vEl.className = "verdict critical"; vEl.textContent = "Critical defects found — " + cr + " item(s) require immediate attention before commissioning can proceed."; }
+  else if (c > 0) { vEl.className = "verdict coaching"; vEl.textContent = "Coaching points identified — " + c + " item(s) flagged for improvement. No immediate safety concern."; }
+  else { vEl.className = "verdict passed"; vEl.textContent = "All checked items passed — no defects identified."; }
+}
+
+function getFields() {
+  return { zn: document.getElementById("znId").value, ba: document.getElementById("buildArea").value, dt: document.getElementById("auditDate").value, au: document.getElementById("auditorName").value, co: document.getElementById("contractorName").value, no: document.getElementById("generalNotes").value };
+}
+function setFields(f) {
+  document.getElementById("znId").value = f.zn || "";
+  document.getElementById("buildArea").value = f.ba || "";
+  document.getElementById("auditDate").value = f.dt || "";
+  document.getElementById("auditorName").value = f.au || "";
+  document.getElementById("contractorName").value = f.co || "";
+  document.getElementById("generalNotes").value = f.no || "";
+}
+
+function trySave() {
+  try {
+    localStorage.setItem(SK, JSON.stringify({ wps: wps, nextId: nextId, fields: getFields() }));
+    var el = document.getElementById("savedMsg");
+    if (el) { el.className = "saved on"; setTimeout(function() { el.className = "saved"; }, 1500); }
+  } catch(e) {}
+}
+
+function saveFile() {
+  var d = { wps: wps, nextId: nextId, fields: getFields() };
+  var b = new Blob([JSON.stringify(d, null, 2)], { type: "application/json" });
+  var zn = document.getElementById("znId").value.trim();
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = (zn ? "GoFibre_Audit_" + zn : "GoFibre_Audit") + ".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+}
+
+function loadFile(e) {
+  var file = e.target.files[0]; if (!file) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
+    try {
+      var d = JSON.parse(ev.target.result);
+      if (d.wps) wps = d.wps;
+      if (d.nextId) nextId = d.nextId;
+      if (d.fields) setFields(d.fields);
+      renderWPs(); updateSummary();
+      alert("Audit loaded — " + wps.length + " workpoint(s) restored.");
+    } catch(err) { alert("Could not load file."); }
+  };
+  r.readAsText(file); e.target.value = "";
+}
+
+function resetAll() {
+  if (!confirm("Reset all audit data? This cannot be undone.")) return;
+  wps = []; nextId = 1; renderWPs(); updateSummary();
+  try { localStorage.removeItem(SK); } catch(e) {}
+}
+
+function openLb(src) { document.getElementById("lbImg").src = src; document.getElementById("lb").className = "lb on"; }
+function closeLb() { document.getElementById("lb").className = "lb"; }
+
+document.addEventListener("paste", function(e) {
+  var ob = document.querySelector(".ck-body.on"); if (!ob) return;
+  var pts = ob.id.split("-"); var wpId = parseInt(pts[1]); var idx = parseInt(pts[2]);
+  var items = e.clipboardData ? e.clipboardData.items : [];
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].type.indexOf("image") === 0) {
+      var f = items[i].getAsFile(); var rdr = new FileReader();
+      (function(wid, ii) {
+        rdr.onload = function(ev) {
+          var w2 = wps.find(function(w) { return w.id === wid; });
+          if (w2 && w2.checks[ii]) { w2.checks[ii].photos.push(ev.target.result); renderPhotos(wid, ii); trySave(); }
+        };
+      })(wpId, idx);
+      rdr.readAsDataURL(f); break;
+    }
+  }
+});
+
+["znId","buildArea","auditDate","auditorName","contractorName","generalNotes"].forEach(function(id) {
+  var el = document.getElementById(id); if (el) el.addEventListener("input", trySave);
+});
+
+document.getElementById("auditDate").value = new Date().toISOString().split("T")[0];
+try { var raw = localStorage.getItem(SK); if (raw) { var d = JSON.parse(raw); if (d.wps) wps = d.wps; if (d.nextId) nextId = d.nextId; if (d.fields) setFields(d.fields); } } catch(e) {}
+try { renderWPs(); } catch(e) { console.log("renderWPs err:", e); }
+try { updateSummary(); } catch(e) {}
+
+function exportPDF() {
+  var f = getFields();
+  var p = parseInt(document.getElementById("nPass").textContent);
+  var c = parseInt(document.getElementById("nCoach").textContent);
+  var cr = parseInt(document.getElementById("nCrit").textContent);
+  var vc = cr > 0 ? "#e74c3c" : c > 0 ? "#f39c12" : "#27ae60";
+  var vt = cr > 0 ? "Critical Defects Found" : c > 0 ? "Coaching Points Identified" : "All Checked Items Passed";
+  var wHTML = "";
+  wps.forEach(function(wp) {
+    var status = getWPStatus(wp);
+    var sc = status === "passed" ? "#27ae60" : status === "critical" ? "#e74c3c" : status === "coaching" ? "#f39c12" : "#5DCBA0";
+    var iHTML = "";
+    wp.checks.forEach(function(ck) {
+      if (!ck.v) return;
+      var vl = ck.v === "passed" ? "PASS" : ck.v === "na" ? "N/A" : ck.v.toUpperCase();
+      var vbg = ck.v === "passed" ? "#f0fff4" : ck.v === "coaching" ? "#fffbea" : ck.v === "na" ? "#f5f5f5" : "#fff5f5";
+      var vc2 = ck.v === "passed" ? "#27ae60" : ck.v === "coaching" ? "#f39c12" : ck.v === "na" ? "#888" : "#e74c3c";
+      var pH = "";
+      if (ck.photos && ck.photos.length) { pH = "<div style='display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;'>"; ck.photos.forEach(function(src) { pH += "<img src='" + src + "' style='width:180px;height:130px;object-fit:cover;border-radius:6px;border:1px solid #ddd;'/>"; }); pH += "</div>"; }
+      iHTML += "<div style='border-left:4px solid " + vc2 + ";padding:9px 12px;margin-bottom:6px;background:" + vbg + ";border-radius:0 6px 6px 0;'><div style='display:flex;justify-content:space-between;align-items:center;gap:8px;'><span style='font-size:13px;font-weight:500;line-height:1.4;'>" + ck.name + "</span><span style='background:" + vc2 + ";color:white;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;'>" + vl + "</span></div>" + (ck.notes ? "<div style='font-size:12px;color:#444;margin-top:5px;line-height:1.5;'>" + ck.notes + "</div>" : "") + pH + "</div>";
+    });
+    var done = wp.checks.filter(function(ck) { return ck.v; }).length;
+    wHTML += "<div style='margin-bottom:20px;border:1.5px solid " + sc + ";border-radius:8px;overflow:hidden;'><div style='background:#1E2530;padding:10px 14px;display:flex;align-items:center;gap:10px;'><span style='color:white;font-size:14px;font-weight:700;'>" + wp.ref + "</span><span style='background:rgba(125,255,209,0.2);color:#7DFFD1;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;'>" + (TYPE_LABELS[wp.type] || wp.type) + "</span><span style='margin-left:auto;color:" + sc + ";font-size:11px;font-weight:700;'>" + done + "/" + wp.checks.length + " checked</span></div>" + (iHTML ? "<div style='padding:12px;'>" + iHTML + "</div>" : "<div style='padding:12px;font-size:12px;color:#5A6A7E;font-style:italic;'>No items checked for this workpoint.</div>") + "</div>";
+  });
+  var html = "<!DOCTYPE html><html><head><meta charset='UTF-8'><style>body{font-family:Arial,sans-serif;color:#1E2530;margin:0;}div{box-sizing:border-box;}@media print{@page{margin:15mm;}}</style></head><body style='padding:32px;max-width:800px;margin:0 auto;'><div style='display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #7DFFD1;padding-bottom:14px;margin-bottom:18px;'><div style='font-size:22px;font-weight:700;color:#1E2530;'>Go Fibre</div><div style='text-align:right;'><div style='font-size:14px;font-weight:700;'>Commissioning Audit Report</div><div style='font-size:11px;color:#5A6A7E;margin-top:2px;'>Build Assurance</div></div></div><div style='background:#1E2530;color:white;border-radius:8px;padding:14px;margin-bottom:16px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;'><div><div style='font-size:10px;color:#7DFFD1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;'>ZN</div><div style='font-size:14px;font-weight:700;'>" + (f.zn || "—") + "</div></div><div><div style='font-size:10px;color:#7DFFD1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;'>Build Area</div><div style='font-size:14px;font-weight:700;'>" + (f.ba || "—") + "</div></div><div><div style='font-size:10px;color:#7DFFD1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;'>Date</div><div style='font-size:14px;font-weight:700;'>" + (f.dt || "—") + "</div></div><div><div style='font-size:10px;color:#7DFFD1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;'>Auditor</div><div style='font-size:14px;font-weight:700;'>" + (f.au || "—") + "</div></div><div><div style='font-size:10px;color:#7DFFD1;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;'>Contractor</div><div style='font-size:14px;font-weight:700;'>" + (f.co || "—") + "</div></div></div><div style='display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;'><div style='background:#f0fff4;border:1.5px solid #27ae60;border-radius:8px;padding:12px;text-align:center;'><div style='font-size:28px;font-weight:700;color:#27ae60;'>" + p + "</div><div style='font-size:12px;color:#5A6A7E;'>Pass</div></div><div style='background:#fffbea;border:1.5px solid #f39c12;border-radius:8px;padding:12px;text-align:center;'><div style='font-size:28px;font-weight:700;color:#f39c12;'>" + c + "</div><div style='font-size:12px;color:#5A6A7E;'>Coaching</div></div><div style='background:#fff5f5;border:1.5px solid #e74c3c;border-radius:8px;padding:12px;text-align:center;'><div style='font-size:28px;font-weight:700;color:#e74c3c;'>" + cr + "</div><div style='font-size:12px;color:#5A6A7E;'>Critical</div></div></div><div style='background:" + vc + ";color:white;border-radius:8px;padding:12px 16px;text-align:center;font-weight:700;font-size:14px;margin-bottom:20px;'>" + vt + "</div>" + (f.no ? "<div style='background:#F4FBF8;border-radius:8px;padding:12px 14px;margin-bottom:20px;border-left:4px solid #7DFFD1;'><div style='font-size:10px;text-transform:uppercase;color:#5A6A7E;margin-bottom:4px;'>General Notes</div><div style='font-size:13px;'>" + f.no + "</div></div>" : "") + "<div style='font-weight:700;font-size:14px;margin-bottom:14px;padding-bottom:8px;border-bottom:1.5px solid #C8EFE3;'>Workpoint Results</div>" + wHTML + "<div style='text-align:center;font-size:11px;color:#5A6A7E;margin-top:32px;padding-top:12px;border-top:1px solid #C8EFE3;'>Go Fibre Build Assurance \u2014 Commissioning Audit \u2014 Generated " + new Date().toLocaleDateString("en-GB") + "</div></body></html>";
+  var w = window.open("", "_blank");
+  if (!w) { alert("Please allow popups to export the PDF."); return; }
+  w.document.write(html); w.document.close();
+  w.onload = function() { setTimeout(function() { w.print(); }, 700); };
+}
+
+</script>
+</body>
+</html>
